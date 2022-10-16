@@ -4,11 +4,13 @@ import typing
 from datetime import datetime
 from fastapi import FastAPI, Request, Body
 from fastapi.responses import JSONResponse
+import requests
 
 # from conf import Config
 from pydantic import BaseModel
 from typing import List, Optional, Union
 from predict import run_summarizer
+from web_scrape import web_scrape
 
 
 # ========== PREDICTION MODEL INPUTS ==========
@@ -60,6 +62,13 @@ async def api_predict(request: Request, inputs: PredictInput = Body(
     inputs = inputs.dict()
 
     assert inputs['data'] is not None, "`data` was not provided for /predict/"
+
+    # check if the input is a valid URL
+    try:
+        response = requests.get(inputs['data'])
+        inputs['data'] = web_scrape(inputs['data']) if response.status_code == 200 else inputs['data']
+    except:
+        pass
 
     # Running summarizer
     y_pred = run_summarizer(
